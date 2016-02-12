@@ -10,6 +10,10 @@ import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
 import com.squareup.okhttp.Response;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.IOException;
 
 public class MainActivity extends AppCompatActivity {
@@ -21,6 +25,12 @@ public class MainActivity extends AppCompatActivity {
 
         getWeather();
         Log.d("Start:", "Succeeded");
+    }
+
+    @Override
+    public void onResponse(final Response response) throws IOException {
+        Log.d("onResponse", response.toString());
+        parseJson(response.body().toString());
     }
 
     private void getWeather() {
@@ -43,5 +53,35 @@ public class MainActivity extends AppCompatActivity {
                 Log.d("onResponse", response.toString());
             }
         });
+    }
+
+    private void parseJson(String json) {
+        try {
+            JSONObject jsonObject = new JSONObject(json);
+            JSONArray forecastsArray = jsonObject.getJSONArray("forecasts");
+            JSONObject todayWeatherJson = forecastsArray.getJSONObject(0);
+
+            String date = todayWeatherJson.getString("date");
+            Log.d("Date:", date);
+            String telop = todayWeatherJson.getString("telop");
+            Log.d("Telop:", telop);
+            String dataLabel = todayWeatherJson.getString("dataLabel");
+            Log.d("DataLabel:", dataLabel);
+
+            JSONObject temperatureJson = todayWeatherJson.getJSONObject("temperature");
+            JSONObject minJson = temperatureJson.get("min") != null ? temperatureJson.getJSONObject("min") : null;
+            String min = "";
+            if (minJson != null) {
+                min = minJson.getString("celsius");
+            }
+            JSONObject maxJson = temperatureJson.get("max") != null ? temperatureJson.getJSONObject("max") : null;
+            String max = "";
+            if (maxJson != null) {
+                max = maxJson.getString("celsius");
+            }
+            Log.d("Min ~ MAx:", min + "~" + max );
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
     }
 }
