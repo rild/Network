@@ -5,8 +5,16 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
+import android.widget.TextView;
 
+import com.cookpad.android.rxt4a.schedulers.AndroidSchedulers;
+import com.google.gson.FieldNamingPolicy;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.internal.bind.DateTypeAdapter;
 import com.lifeistech.android.network.api.ApiClient;
+import com.lifeistech.android.network.api.WeatherApi;
+import com.lifeistech.android.network.entity.WeatherEntity;
 import com.lifeistech.android.network.response.ApiResponse;
 import com.lifeistech.android.network.tmp.Entries;
 import com.lifeistech.android.network.tmp.Entry;
@@ -21,12 +29,18 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
+import retrofit.RestAdapter;
+import retrofit.android.AndroidLog;
+import retrofit.converter.GsonConverter;
 import rx.Observable;
+import rx.Observer;
 import rx.Subscriber;
 import rx.functions.Action1;
 import rx.functions.Func1;
+import rx.schedulers.Schedulers;
 import timber.log.Timber;
 
 public class MainActivity extends AppCompatActivity {
@@ -37,8 +51,45 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        getWeather();
-        Log.d("Start:", "Succeeded");
+//        getWeather();
+//        Log.d("Start:", "Succeeded");
+        // JSONのパーサー
+        Gson gson = new GsonBuilder()
+                .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
+                .registerTypeAdapter(Date.class, new DateTypeAdapter())
+                .create();
+
+        // RestAdapterの生成
+        RestAdapter adapter = new RestAdapter.Builder()
+                .setEndpoint("http://api.openweathermap.org")
+                .setConverter(new GsonConverter(gson))
+                .setLogLevel(RestAdapter.LogLevel.FULL)
+                .setLog(new AndroidLog("=NETWORK="))
+                .build();
+
+        // 非同期処理の実行
+        adapter.create(WeatherApi.class).get("weather", "Tokyo,jp")
+                .subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Observer<WeatherEntity>() {
+                    @Override
+                    public void onCompleted() {
+                        Log.d("MainActivity", "onCompleted()");
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        Log.e("MainActivity", "Error : " + e.toString());
+                    }
+
+                    @Override
+                    public void onNext(WeatherEntity weather) {
+                        Log.d("MainActivity", "onNext()");
+                        if (weather != null) {
+                            ((TextView) findViewById(R.id.text)).setText(weather.weather.get(0).main);
+                        }
+                    }
+                });
     }
 
 
