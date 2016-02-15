@@ -25,4 +25,6 @@ dependencies {
     compile 'com.android.support:appcompat-v7:23.1.1'
     compile 'com.squareup.picasso:picasso:2.3.3'
     compile 'com.squareup.okhttp:okhttp:2.0.0'
+    compile 'io.reactivex:rxjava:1.0.y-SNAPSHOT'
+    compile 'com.cookpad.android.rxt4a:rxt4a:0.9.0'
 }

@@ -27,10 +27,12 @@ public class MainActivity extends AppCompatActivity {
         Log.d("Start:", "Succeeded");
     }
 
-    @Override
-    public void onResponse(final Response response) throws IOException {
-        Log.d("onResponse", response.toString());
-        parseJson(response.body().toString());
+    public void plus(int x, int y) {
+        System.out.println(x + " + " + y + " = " + (x + y));
+    }
+    public int plus0(int x, int y) {
+        //戻り値の有無では同名メソッドは許されない(まぁ当然か…)
+        return x + y;
     }
 
     private void getWeather() {
@@ -47,10 +49,12 @@ public class MainActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
 
+            //onResponse in Callback interface
             //Failir
             @Override
             public void onResponse(Response response) throws IOException {
                 Log.d("onResponse", response.toString());
+                parseJson(response.body().toString());
             }
         });
     }
