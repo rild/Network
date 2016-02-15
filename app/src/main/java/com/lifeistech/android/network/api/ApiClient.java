@@ -1,5 +1,9 @@
 package com.lifeistech.android.network.api;
 
+import com.lifeistech.android.network.response.ApiResponse;
+import com.lifeistech.android.network.tmp.Entries;
+import com.lifeistech.android.network.tmp.Entry;
+
 import rx.Observable;
 
 /**
@@ -25,16 +29,4 @@ public interface ApiClient {
 
     //entry/:id　を呼ぶRxJava対応メソッド
     Observable<ApiResponse<Entry>> entry(String id);
-
-    public class Entry {
-
-    }
-
-    public class Entries {
-
-    }
-
-    public class ApiResponse<T> {
-
-    }
 }

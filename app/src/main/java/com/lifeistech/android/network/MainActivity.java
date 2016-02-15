@@ -3,8 +3,13 @@ package com.lifeistech.android.network;
 import android.app.DownloadManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.util.Log;
 
+import com.lifeistech.android.network.api.ApiClient;
+import com.lifeistech.android.network.response.ApiResponse;
+import com.lifeistech.android.network.tmp.Entries;
+import com.lifeistech.android.network.tmp.Entry;
 import com.squareup.okhttp.Callback;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
@@ -15,8 +20,14 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import rx.functions.Action1;
+import timber.log.Timber;
 
 public class MainActivity extends AppCompatActivity {
+    ApiClient mApiClient;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -87,5 +98,39 @@ public class MainActivity extends AppCompatActivity {
         } catch (JSONException e) {
             e.printStackTrace();
         }
+    }
+
+    private void Call() {
+        mApiClient.getEntries(new ApiClient.ResponseListener<Entries>() {
+            @Override
+            public void onComplete(ApiResponse<Entries> r) {
+                final int count = r.content.entryIds.size();
+                final List<Entry> entries = new ArrayList<>();
+
+                for (String id: r.content.entryIds) {
+                    mApiClient.getEntry(id, new ApiClient.ResponseListener<Entry>() {
+                        @Override
+                        public void onComplete(ApiResponse<Entry> response) {
+                            synchronized (entries) {
+                                entries.add(response.content);
+                                if (entries.size() == count) {
+                                    //entries を viewに反映させる
+                                    Timber.d("XXX", TextUtils.join(", ", entries));
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+        });
+    }
+
+    private void Call2() {
+        mApiClient.entries().subscribe(new Action1<ApiResponse<Entries>>() {
+            @Override
+            public void call(ApiResponse<Entries> r) {
+                Timber.d("XXX", "entry Ids:" + TextUtils.join(", ", r.content.entryIds));
+            }
+        });
     }
 }
