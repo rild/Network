@@ -23,7 +23,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import rx.Observable;
+import rx.Subscriber;
 import rx.functions.Action1;
+import rx.functions.Func1;
 import timber.log.Timber;
 
 public class MainActivity extends AppCompatActivity {
@@ -38,13 +41,7 @@ public class MainActivity extends AppCompatActivity {
         Log.d("Start:", "Succeeded");
     }
 
-    public void plus(int x, int y) {
-        System.out.println(x + " + " + y + " = " + (x + y));
-    }
-    public int plus0(int x, int y) {
-        //戻り値の有無では同名メソッドは許されない(まぁ当然か…)
-        return x + y;
-    }
+
 
     private void getWeather() {
         Request request = new Request.Builder()
@@ -94,7 +91,7 @@ public class MainActivity extends AppCompatActivity {
             if (maxJson != null) {
                 max = maxJson.getString("celsius");
             }
-            Log.d("Min ~ MAx:", min + "~" + max );
+            Log.d("Min ~ MAx:", min + "~" + max);
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -107,7 +104,7 @@ public class MainActivity extends AppCompatActivity {
                 final int count = r.content.entryIds.size();
                 final List<Entry> entries = new ArrayList<>();
 
-                for (String id: r.content.entryIds) {
+                for (String id : r.content.entryIds) {
                     mApiClient.getEntry(id, new ApiClient.ResponseListener<Entry>() {
                         @Override
                         public void onComplete(ApiResponse<Entry> response) {
@@ -133,4 +130,33 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+
+//    public Observable<ApiResponse<Entries>> entries() {
+//        // Observable.OnSubscribeのインスタンスからObservableを生成する
+//        return Observable.create(
+//                new Observable.OnSubscribe<ApiResponse<Entries>>() {
+//                    @Override
+//                    public void call(final Subscriber
+//                            <? super ApiResponse<Entries>> subscriber) {
+//                        // ApiClient#getEntries()を呼び出す
+//                        getEntries(new ApiClient.ResponseListener<Entries>() {
+//                            @Override
+//                            public void onComplete(ApiResponse<Entries> response) {
+//                                // getEntries()のコールバックが戻ったらsubscriberに通知する
+//                                subscriber.onNext(response);
+//                                subscriber.onCompleted();
+//                            }
+//                        });
+//                    }
+//                });
+//    }
+//
+//    public Observable<Entries> entries2() {
+//        return entries().map(new Func1<ApiResponse<Entries>, Entries>() {
+//            @Override
+//            public Entries call(ApiResponse<Entries> r) {
+//                return r.content;
+//            }
+//        });
+//    }
 }

@@ -25,6 +25,10 @@ dependencies {
     compile 'com.android.support:appcompat-v7:23.1.1'
     compile 'com.squareup.picasso:picasso:2.3.3'
     compile 'com.squareup.okhttp:okhttp:2.0.0'
+    // Retrofit
+    compile 'com.squareup.retrofit:retrofit:1.9.0'
+    compile 'com.squareup.okhttp:okhttp-urlconnection:2.0.0'
+    compile 'com.squareup.okhttp:okhttp:2.4.0'
 
     // Rx
     compile 'io.reactivex:rxjava:1.0.y-SNAPSHOT'
