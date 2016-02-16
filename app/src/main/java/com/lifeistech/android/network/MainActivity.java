@@ -1,10 +1,16 @@
 package com.lifeistech.android.network;
 
 import android.app.DownloadManager;
+import android.content.Context;
+import android.location.Criteria;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.cookpad.android.rxt4a.schedulers.AndroidSchedulers;
@@ -13,7 +19,10 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.internal.bind.DateTypeAdapter;
 import com.lifeistech.android.network.api.ApiClient;
+import com.lifeistech.android.network.api.EmployeesAPI;
 import com.lifeistech.android.network.api.WeatherApi;
+import com.lifeistech.android.network.client.JSONWeatherTask;
+import com.lifeistech.android.network.entity.Employees;
 import com.lifeistech.android.network.entity.WeatherEntity;
 import com.lifeistech.android.network.response.ApiResponse;
 import com.lifeistech.android.network.tmp.Entries;
@@ -27,12 +36,17 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 import retrofit.RestAdapter;
+import retrofit.RetrofitError;
 import retrofit.android.AndroidLog;
 import retrofit.converter.GsonConverter;
 import rx.Observable;
@@ -44,79 +58,33 @@ import rx.schedulers.Schedulers;
 import timber.log.Timber;
 
 public class MainActivity extends AppCompatActivity {
+    private static final String ENDPOINT = "XXX";
     ApiClient mApiClient;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
 
-//        getWeather();
-//        Log.d("Start:", "Succeeded");
-        // JSONのパーサー
-        Gson gson = new GsonBuilder()
-                .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
-                .registerTypeAdapter(Date.class, new DateTypeAdapter())
-                .create();
-
-        // RestAdapterの生成
-        RestAdapter adapter = new RestAdapter.Builder()
-                .setEndpoint("http://api.openweathermap.org")
-                .setConverter(new GsonConverter(gson))
-                .setLogLevel(RestAdapter.LogLevel.FULL)
-                .setLog(new AndroidLog("=NETWORK="))
-                .build();
-
-        // 非同期処理の実行
-        adapter.create(WeatherApi.class).get("weather", "Tokyo,jp")
-                .subscribeOn(Schedulers.newThread())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Observer<WeatherEntity>() {
-                    @Override
-                    public void onCompleted() {
-                        Log.d("MainActivity", "onCompleted()");
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        Log.e("MainActivity", "Error : " + e.toString());
-                    }
-
-                    @Override
-                    public void onNext(WeatherEntity weather) {
-                        Log.d("MainActivity", "onNext()");
-                        if (weather != null) {
-                            ((TextView) findViewById(R.id.text)).setText(weather.weather.get(0).main);
-                        }
-                    }
-                });
     }
 
-
-
-    private void getWeather() {
-        Request request = new Request.Builder()
-                .url("http://weather.livedoor.com/forecast/webservice/json/v1?city=130010")
-                .get()
-                .build();
-
-        OkHttpClient client = new OkHttpClient();
-
-        client.newCall(request).enqueue(new Callback() {
+    //Request method
+    public void requestEmployeeData(String uri){
+        RestAdapter adapter = new RestAdapter.Builder().setEndpoint(ENDPOINT).build();
+        EmployeesAPI employeesAPI =adapter.create(EmployeesAPI.class);
+        employeesAPI.getEmployees(new Callback<Employees>() {
             @Override
             public void onFailure(Request request, IOException e) {
-                e.printStackTrace();
+
             }
 
-            //onResponse in Callback interface
-            //Failir
             @Override
             public void onResponse(Response response) throws IOException {
-                Log.d("onResponse", response.toString());
-                parseJson(response.body().toString());
+
             }
         });
     }
+
+
 
     private void parseJson(String json) {
         try {
@@ -182,32 +150,4 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-//    public Observable<ApiResponse<Entries>> entries() {
-//        // Observable.OnSubscribeのインスタンスからObservableを生成する
-//        return Observable.create(
-//                new Observable.OnSubscribe<ApiResponse<Entries>>() {
-//                    @Override
-//                    public void call(final Subscriber
-//                            <? super ApiResponse<Entries>> subscriber) {
-//                        // ApiClient#getEntries()を呼び出す
-//                        getEntries(new ApiClient.ResponseListener<Entries>() {
-//                            @Override
-//                            public void onComplete(ApiResponse<Entries> response) {
-//                                // getEntries()のコールバックが戻ったらsubscriberに通知する
-//                                subscriber.onNext(response);
-//                                subscriber.onCompleted();
-//                            }
-//                        });
-//                    }
-//                });
-//    }
-//
-//    public Observable<Entries> entries2() {
-//        return entries().map(new Func1<ApiResponse<Entries>, Entries>() {
-//            @Override
-//            public Entries call(ApiResponse<Entries> r) {
-//                return r.content;
-//            }
-//        });
-//    }
 }

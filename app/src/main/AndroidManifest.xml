@@ -17,6 +17,10 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- 取得したAPIキーはここに記述 API KEY -->
+        <meta-data
+            android:name="com.google.android.maps.v2.API_KEY"
+            android:value="＊＊＊＊＊-_d1Xn_p6YhjX1VaZR0rhm-＊＊＊＊" />
     </application>
 
 </manifest>
