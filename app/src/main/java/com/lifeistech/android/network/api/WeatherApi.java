@@ -11,8 +11,7 @@ import rx.Observable;
  * Created by rild on 16/02/15.
  */
 public interface WeatherApi {
-
-    @GET("/data/2.5/{name}")
-    public Observable<WeatherEntity> get(@Path("name") String name, @Query("q") String q);
+    @GET("/forecast/webservice/json/v1")
+    public Observable<WeatherEntity> getWeather(@Query("city") final String city);
 
 }

@@ -1,16 +1,8 @@
 package com.lifeistech.android.network;
 
-import android.app.DownloadManager;
-import android.content.Context;
-import android.location.Criteria;
-import android.location.Location;
-import android.location.LocationListener;
-import android.location.LocationManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.text.TextUtils;
 import android.util.Log;
-import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.cookpad.android.rxt4a.schedulers.AndroidSchedulers;
@@ -18,136 +10,71 @@ import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.internal.bind.DateTypeAdapter;
-import com.lifeistech.android.network.api.ApiClient;
-import com.lifeistech.android.network.api.EmployeesAPI;
 import com.lifeistech.android.network.api.WeatherApi;
-import com.lifeistech.android.network.client.JSONWeatherTask;
-import com.lifeistech.android.network.entity.Employees;
 import com.lifeistech.android.network.entity.WeatherEntity;
-import com.lifeistech.android.network.response.ApiResponse;
-import com.lifeistech.android.network.tmp.Entries;
-import com.lifeistech.android.network.tmp.Entry;
-import com.squareup.okhttp.Callback;
-import com.squareup.okhttp.OkHttpClient;
-import com.squareup.okhttp.Request;
-import com.squareup.okhttp.Response;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.URL;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 
 import retrofit.RestAdapter;
-import retrofit.RetrofitError;
 import retrofit.android.AndroidLog;
 import retrofit.converter.GsonConverter;
-import rx.Observable;
 import rx.Observer;
-import rx.Subscriber;
-import rx.functions.Action1;
-import rx.functions.Func1;
 import rx.schedulers.Schedulers;
-import timber.log.Timber;
 
 public class MainActivity extends AppCompatActivity {
-    private static final String ENDPOINT = "XXX";
-    ApiClient mApiClient;
+    private static final String END_POINT = "http://weather.livedoor.com";
+
+    private static final String TAG = MainActivity.class.getSimpleName();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
 
-    }
+        Gson gson = new GsonBuilder()
+                .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
+                .registerTypeAdapter(Date.class, new DateTypeAdapter())
+                .create();
 
-    //Request method
-    public void requestEmployeeData(String uri){
-        RestAdapter adapter = new RestAdapter.Builder().setEndpoint(ENDPOINT).build();
-        EmployeesAPI employeesAPI =adapter.create(EmployeesAPI.class);
-        employeesAPI.getEmployees(new Callback<Employees>() {
+        // RestAdapterを作成する
+        RestAdapter adapter = new RestAdapter.Builder()
+                .setEndpoint(END_POINT)
+                .setConverter(new GsonConverter(gson))
+                .setLogLevel(RestAdapter.LogLevel.FULL)
+                .setLog(new AndroidLog("=NETWORK="))
+                .build();
+
+        // 天気予報情報を取得する
+        //http://weather.livedoor.com/area/forecast/200010
+        WeatherApi api = adapter.create(WeatherApi.class);
+
+        Observer observer = new Observer<WeatherEntity>() {
             @Override
-            public void onFailure(Request request, IOException e) {
-
+            public void onCompleted() {
+                Log.d(TAG, "onCompleted()");
+                //必要な情報を取り出して画面に表示してください。
             }
 
             @Override
-            public void onResponse(Response response) throws IOException {
-
+            public void onError(Throwable e) {
+                Log.e(TAG, "Error : " + e.toString());
             }
-        });
-    }
 
-
-
-    private void parseJson(String json) {
-        try {
-            JSONObject jsonObject = new JSONObject(json);
-            JSONArray forecastsArray = jsonObject.getJSONArray("forecasts");
-            JSONObject todayWeatherJson = forecastsArray.getJSONObject(0);
-
-            String date = todayWeatherJson.getString("date");
-            Log.d("Date:", date);
-            String telop = todayWeatherJson.getString("telop");
-            Log.d("Telop:", telop);
-            String dataLabel = todayWeatherJson.getString("dataLabel");
-            Log.d("DataLabel:", dataLabel);
-
-            JSONObject temperatureJson = todayWeatherJson.getJSONObject("temperature");
-            JSONObject minJson = temperatureJson.get("min") != null ? temperatureJson.getJSONObject("min") : null;
-            String min = "";
-            if (minJson != null) {
-                min = minJson.getString("celsius");
-            }
-            JSONObject maxJson = temperatureJson.get("max") != null ? temperatureJson.getJSONObject("max") : null;
-            String max = "";
-            if (maxJson != null) {
-                max = maxJson.getString("celsius");
-            }
-            Log.d("Min ~ MAx:", min + "~" + max);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void Call() {
-        mApiClient.getEntries(new ApiClient.ResponseListener<Entries>() {
             @Override
-            public void onComplete(ApiResponse<Entries> r) {
-                final int count = r.content.entryIds.size();
-                final List<Entry> entries = new ArrayList<>();
-
-                for (String id : r.content.entryIds) {
-                    mApiClient.getEntry(id, new ApiClient.ResponseListener<Entry>() {
-                        @Override
-                        public void onComplete(ApiResponse<Entry> response) {
-                            synchronized (entries) {
-                                entries.add(response.content);
-                                if (entries.size() == count) {
-                                    //entries を viewに反映させる
-                                    Timber.d("XXX", TextUtils.join(", ", entries));
-                                }
-                            }
-                        }
-                    });
-                }
+            public void onNext(WeatherEntity weather) {
+                Log.d(TAG, "onNext()");
+                ((TextView) findViewById(R.id.text)).setText(weather.getForecasts().get(0).getDate());
             }
-        });
+        };
+
+        api.getWeather("200010")
+                .subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(observer);
     }
 
-    private void Call2() {
-        mApiClient.entries().subscribe(new Action1<ApiResponse<Entries>>() {
-            @Override
-            public void call(ApiResponse<Entries> r) {
-                Timber.d("XXX", "entry Ids:" + TextUtils.join(", ", r.content.entryIds));
-            }
-        });
-    }
 
 }
+
+
+
