@@ -1,9 +1,7 @@
 package com.lifeistech.android.network;
 
-import android.app.DownloadManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.text.TextUtils;
 import android.util.Log;
 import android.widget.TextView;
 
@@ -12,12 +10,8 @@ import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.internal.bind.DateTypeAdapter;
-import com.lifeistech.android.network.api.ApiClient;
-import com.lifeistech.android.network.api.WeatherApi;
+import com.lifeistech.android.network.controller.service.WeatherApi;
 import com.lifeistech.android.network.entity.WeatherEntity;
-import com.lifeistech.android.network.response.ApiResponse;
-import com.lifeistech.android.network.tmp.Entries;
-import com.lifeistech.android.network.tmp.Entry;
 import com.squareup.okhttp.Callback;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
@@ -28,68 +22,66 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 
 import retrofit.RestAdapter;
 import retrofit.android.AndroidLog;
 import retrofit.converter.GsonConverter;
-import rx.Observable;
 import rx.Observer;
-import rx.Subscriber;
-import rx.functions.Action1;
-import rx.functions.Func1;
 import rx.schedulers.Schedulers;
-import timber.log.Timber;
 
 public class MainActivity extends AppCompatActivity {
-    ApiClient mApiClient;
+    private static final String END_POINT = "http://weather.livedoor.com";
+
+    private static final String TAG = MainActivity.class.getSimpleName();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-//        getWeather();
-//        Log.d("Start:", "Succeeded");
-        // JSONのパーサー
         Gson gson = new GsonBuilder()
                 .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
                 .registerTypeAdapter(Date.class, new DateTypeAdapter())
                 .create();
 
-        // RestAdapterの生成
+
+        // RestAdapterを作成する
         RestAdapter adapter = new RestAdapter.Builder()
-                .setEndpoint("http://api.openweathermap.org")
+                .setEndpoint(END_POINT)
                 .setConverter(new GsonConverter(gson))
                 .setLogLevel(RestAdapter.LogLevel.FULL)
                 .setLog(new AndroidLog("=NETWORK="))
                 .build();
 
-        // 非同期処理の実行
-        adapter.create(WeatherApi.class).get("weather", "Tokyo,jp")
+        // 天気予報情報を取得する
+        //http://weather.livedoor.com/area/forecast/200010
+        WeatherApi api =  adapter.create(WeatherApi.class);
+
+        Observer observer = new Observer<WeatherEntity>() {
+            @Override
+            public void onCompleted() {
+                Log.d(TAG, "onCompleted()");
+                //必要な情報を取り出して画面に表示してください。
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                Log.e(TAG, "Error : " + e.toString());
+            }
+
+            @Override
+            public void onNext(WeatherEntity weather) {
+                Log.d(TAG, "onNext()");
+                ((TextView)findViewById(R.id.text)).setText(weather.getPinpointLocations().get(0).getName());
+            }
+        };
+
+        api.getWeather("200010")
                 .subscribeOn(Schedulers.newThread())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Observer<WeatherEntity>() {
-                    @Override
-                    public void onCompleted() {
-                        Log.d("MainActivity", "onCompleted()");
-                    }
+                .subscribe(observer);
 
-                    @Override
-                    public void onError(Throwable e) {
-                        Log.e("MainActivity", "Error : " + e.toString());
-                    }
-
-                    @Override
-                    public void onNext(WeatherEntity weather) {
-                        Log.d("MainActivity", "onNext()");
-                        if (weather != null) {
-                            ((TextView) findViewById(R.id.text)).setText(weather.weather.get(0).main);
-                        }
-                    }
-                });
     }
 
 
@@ -147,67 +139,4 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
     }
-
-    private void Call() {
-        mApiClient.getEntries(new ApiClient.ResponseListener<Entries>() {
-            @Override
-            public void onComplete(ApiResponse<Entries> r) {
-                final int count = r.content.entryIds.size();
-                final List<Entry> entries = new ArrayList<>();
-
-                for (String id : r.content.entryIds) {
-                    mApiClient.getEntry(id, new ApiClient.ResponseListener<Entry>() {
-                        @Override
-                        public void onComplete(ApiResponse<Entry> response) {
-                            synchronized (entries) {
-                                entries.add(response.content);
-                                if (entries.size() == count) {
-                                    //entries を viewに反映させる
-                                    Timber.d("XXX", TextUtils.join(", ", entries));
-                                }
-                            }
-                        }
-                    });
-                }
-            }
-        });
-    }
-
-    private void Call2() {
-        mApiClient.entries().subscribe(new Action1<ApiResponse<Entries>>() {
-            @Override
-            public void call(ApiResponse<Entries> r) {
-                Timber.d("XXX", "entry Ids:" + TextUtils.join(", ", r.content.entryIds));
-            }
-        });
-    }
-
-//    public Observable<ApiResponse<Entries>> entries() {
-//        // Observable.OnSubscribeのインスタンスからObservableを生成する
-//        return Observable.create(
-//                new Observable.OnSubscribe<ApiResponse<Entries>>() {
-//                    @Override
-//                    public void call(final Subscriber
-//                            <? super ApiResponse<Entries>> subscriber) {
-//                        // ApiClient#getEntries()を呼び出す
-//                        getEntries(new ApiClient.ResponseListener<Entries>() {
-//                            @Override
-//                            public void onComplete(ApiResponse<Entries> response) {
-//                                // getEntries()のコールバックが戻ったらsubscriberに通知する
-//                                subscriber.onNext(response);
-//                                subscriber.onCompleted();
-//                            }
-//                        });
-//                    }
-//                });
-//    }
-//
-//    public Observable<Entries> entries2() {
-//        return entries().map(new Func1<ApiResponse<Entries>, Entries>() {
-//            @Override
-//            public Entries call(ApiResponse<Entries> r) {
-//                return r.content;
-//            }
-//        });
-//    }
 }
